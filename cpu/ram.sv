@@ -1,5 +1,6 @@
 module ram #(
-    parameter SIZE = 65536
+    parameter SIZE = 65536,
+    parameter FB_ADDR = 16'hF000
 ) (
     input wire clk,
     input wire [31:0] data_addr,
@@ -7,8 +8,10 @@ module ram #(
     input wire we,
     input wire [3:0] byte_mask,
     input wire [31:0] wr_data,
+    input wire [11:0] fb_addr,
     output wire [31:0] rd_data,
-    output wire [31:0] rd_instr
+    output wire [31:0] rd_instr,
+    output wire [7:0] fb_data
 );
 
 localparam WORDS = SIZE / 4;
@@ -33,5 +36,6 @@ end
 
 assign rd_data  = mem[word_data_addr];
 assign rd_instr = mem[word_instr_addr];
+assign fb_data  = mem[FB_ADDR + fb_addr][7:0];
 
 endmodule

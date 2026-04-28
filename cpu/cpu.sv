@@ -150,11 +150,13 @@ ram ram_inst(
     .clk(clk),
     .data_addr(rs1_data + imm32),
     .instr_addr(program_counter),
+    .fb_addr(fb_addr),
     .we(ram_we),
     .byte_mask(byte_mask),
     .wr_data(rs2_data),
     .rd_data(ram_rd_data),
-    .rd_instr(instr)
+    .rd_instr(instr),
+    .fb_data(fb_data)
 );
 
 alu_control alu_control_inst(

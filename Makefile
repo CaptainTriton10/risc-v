@@ -1,15 +1,15 @@
 NAME = cpu
-SRC = *.sv
+SRC = cpu/*.sv vga/*.sv vga/hdl/*.sv vga/hdl/*.v
 DUT = cpu
-LPF = ../icepi-zero.lpf
+LPF = icepi-zero.lpf
 
 wave:
-	iverilog ./$(NAME)/$(SRC) ./testbenches/$(DUT)_tb.sv
+	iverilog $(SRC) ./testbenches/$(DUT)_tb.sv
 	vvp a.out
 	gtkwave wave.vcd
 
 build:
-	yosys -p "synth_ecp5 -top top -json $(NAME).json" ./$(NAME)/$(SRC)
+	yosys -p "synth_ecp5 -top top -json $(NAME).json" $(SRC)
 	nextpnr-ecp5 --25k --package CABGA256 --json $(NAME).json --lpf $(LPF) --textcfg $(NAME).config
 	ecppack --svf $(NAME).svf $(NAME).config $(NAME).bit
 
