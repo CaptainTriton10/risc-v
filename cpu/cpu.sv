@@ -1,7 +1,10 @@
+`define TESTBENCH
+
 module top(
     input wire clk,
     input wire [1:0] button,
-    output wire [3:0] gpdi_dp
+    output wire [3:0] gpdi_dp,
+    output wire [4:0] led
 );
 
 wire rst = button[0];
@@ -21,6 +24,7 @@ localparam S2_RS2 = 1'b0;
 localparam S2_IMM = 1'b1;
 
 wire [31:0] program_counter;
+wire clk2;
 
 wire [31:0] instr;
 wire [6:0] opcode = instr[6:0];
@@ -36,28 +40,30 @@ wire [7:0] vga_r, vga_g, vga_b;
 wire [11:0] fb_addr;
 wire [7:0] fb_data;
 
-// Generate pixel and tmds clock (25MHz and 250MHz)
-wire clkp, clkt;
-dvi_pll pll(.clk_in(clk), .clkp(clkp), .clkt(clkt), .locked());
+`ifndef TESTBENCH
+    // Generate pixel and tmds clock (25MHz and 250MHz)
+    wire clkp, clkt;
+    dvi_pll pll(.clk_in(clk), .clkp(clkp), .clkt(clkt), .locked());
 
-dvi_out dvi(
-    .clkp(clkp),
-    .fb_addr(fb_addr),
-    .fb_data (fb_data),
-    .vga_r(vga_r),
-    .vga_g(vga_g),
-    .vga_b(vga_b),
-    .vsync(vsync),
-    .hsync(hsync),
-    .de(de)
-);
+    dvi_out dvi(
+        .clkp(clkp),
+        .fb_addr(fb_addr),
+        .fb_data (fb_data),
+        .vga_r(vga_r),
+        .vga_g(vga_g),
+        .vga_b(vga_b),
+        .vsync(vsync),
+        .hsync(hsync),
+        .de(de)
+    );
 
-// Convert the signal to DVI and send over HDMI
-vga2tmds tmds_generator(
-	.clkp(clkp), .clkt(clkt),
-	.vsync(vsync), .hsync(hsync), .de(de),
-	.r(vga_r), .g(vga_g), .b(vga_b), .tmds(gpdi_dp)
-);
+    // Convert the signal to DVI and send over HDMI
+    vga2tmds tmds_generator(
+    	.clkp(clkp), .clkt(clkt),
+    	.vsync(vsync), .hsync(hsync), .de(de),
+    	.r(vga_r), .g(vga_g), .b(vga_b), .tmds(gpdi_dp)
+    );
+`endif
 
 // CPU MODULES //
 
@@ -100,7 +106,7 @@ wire [31:0] reg_wr_data = (wb_sel == WB_ALU) ? alu_result :
                           program_counter + 32'h00000004;
 
 registers registers_inst(
-    .clk(clk),
+    .clk(clk2),
     .we(reg_we),
     .wr_index(rd_index),
     .wr_data(reg_wr_data),
@@ -123,8 +129,8 @@ always @(*) begin
         PC_LOAD_IMM: pc_in = program_counter + imm32;
         PC_LOAD_RS1IMM: pc_in = rs1_data + imm32; // TODO: make lsb 0 (as per spec)
         PC_LOAD_BRANCH: pc_in = branch_taken ?
-            program_counter + imm32 : program_counter + 32'h00000004;
-        default: pc_in = program_counter + 32'h00000004;
+            program_counter + imm32 : program_counter + 32'd1;
+        default: pc_in = program_counter + 32'd1;
     endcase
 end
 
@@ -133,7 +139,8 @@ program_counter program_counter_inst(
     .rst(rst),
     .pc_load(pc_load),
     .pc_in(pc_in),
-    .pc_out(program_counter)
+    .pc_out(program_counter),
+    .clk2(clk2)
 );
 
 reg [3:0] byte_mask;
@@ -149,14 +156,17 @@ end
 ram ram_inst(
     .clk(clk),
     .data_addr(rs1_data + imm32),
-    .instr_addr(program_counter),
     .fb_addr(fb_addr),
     .we(ram_we),
     .byte_mask(byte_mask),
     .wr_data(rs2_data),
     .rd_data(ram_rd_data),
-    .rd_instr(instr),
     .fb_data(fb_data)
+);
+
+instr_rom instr_rom_inst(
+    .addr(program_counter),
+    .instr(instr)
 );
 
 alu_control alu_control_inst(

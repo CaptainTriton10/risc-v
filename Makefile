@@ -4,12 +4,12 @@ DUT = cpu
 LPF = icepi-zero.lpf
 
 wave:
-	iverilog $(SRC) ./testbenches/$(DUT)_tb.sv
+	iverilog cpu/*.sv ./testbenches/$(DUT)_tb.sv
 	vvp a.out
 	gtkwave wave.vcd
 
 build:
-	yosys -p "synth_ecp5 -top top -json $(NAME).json" $(SRC)
+	yosys -p "synth_ecp5 -top top -noflatten -json $(NAME).json; stat" $(SRC)
 	nextpnr-ecp5 --25k --package CABGA256 --json $(NAME).json --lpf $(LPF) --textcfg $(NAME).config
 	ecppack --svf $(NAME).svf $(NAME).config $(NAME).bit
 

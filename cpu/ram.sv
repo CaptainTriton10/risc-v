@@ -1,29 +1,22 @@
 module ram #(
-    parameter SIZE = 65536,
-    parameter FB_ADDR = 16'hF000
+    parameter SIZE = 4096,
+    parameter FB_ADDR = 12'h6A0
 ) (
     input wire clk,
     input wire [31:0] data_addr,
-    input wire [31:0] instr_addr,
     input wire we,
     input wire [3:0] byte_mask,
     input wire [31:0] wr_data,
     input wire [11:0] fb_addr,
     output wire [31:0] rd_data,
-    output wire [31:0] rd_instr,
     output wire [7:0] fb_data
 );
 
 localparam WORDS = SIZE / 4;
 
 wire [$clog2(WORDS)-1:0] word_data_addr  = data_addr[2 +: $clog2(WORDS)];
-wire [$clog2(WORDS)-1:0] word_instr_addr = instr_addr[2 +: $clog2(WORDS)];
 
 reg [31:0] mem [(WORDS)-1:0];
-
-initial begin
-    $readmemh("program.hex", mem, 0, (16'h8000 / 4) - 1);
-end
 
 always @(posedge clk) begin
     if (we) begin
@@ -35,7 +28,6 @@ always @(posedge clk) begin
 end
 
 assign rd_data  = mem[word_data_addr];
-assign rd_instr = mem[word_instr_addr];
 assign fb_data  = mem[FB_ADDR + fb_addr][7:0];
 
 endmodule
